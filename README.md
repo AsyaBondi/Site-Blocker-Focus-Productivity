@@ -1,7 +1,8 @@
 # Site Blocker - Browser Extension
 
 A powerful browser extension that helps you stay focused and productive by blocking distracting websites with an intelligent delay-based system.
-![Version](https://img.shields.io/badge/Version-1.0-blue) ![Platform](https://img.shields.io/badge/Platform-Chrome%20Extension-orange) ![Manifest](https://img.shields.io/badge/Manifest-V3-green)
+
+![Version](https://img.shields.io/badge/Version-1.3-blue) ![Platform](https://img.shields.io/badge/Platform-Chrome%20Extension-orange) ![Manifest](https://img.shields.io/badge/Manifest-V3-green)
 ## 🌟 Features
 
 ### Smart Blocking System
