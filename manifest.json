@@ -5,8 +5,7 @@
   "description": "Блокирует загрузку указанных сайтов с возможностью включения/выключения",
   "permissions": [
     "storage",
-    "declarativeNetRequest",
-    "scripting"
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "<all_urls>"
