@@ -2,14 +2,19 @@
 
 A powerful browser extension that helps you stay focused and productive by blocking distracting websites with an intelligent delay-based system.
 
-![Version](https://img.shields.io/badge/Version-1.0-blue) ![Platform](https://img.shields.io/badge/Platform-Chrome%20Extension-orange) ![Manifest](https://img.shields.io/badge/Manifest-V3-green)
-
 ## 🌟 Features
 
 ### Smart Blocking System
-- **🟢 Enabled**: Immediate website blocking
-- **🟡 Disabled with Delay**: 60-second countdown before unblocking
-- **🔴 Fully Disabled**: Complete website accessibility
+- **🟢 Enabled**: Website is blocked - shows custom blocked page
+- **🟡 Disabled with Delay**: 60-second countdown before unblocking with visual timer
+- **🔴 Fully Disabled**: Website is accessible
+
+### Advanced Functionality
+- **Real-time Countdown**: Live timer updates across all tabs
+- **Subdomain Support**: Blocks all subdomains automatically (e.g., ru.youtube.com for youtube.com)
+- **Multi-tab Synchronization**: Status updates propagate to all open tabs
+- **Persistent Timers**: Countdowns continue even after browser restart
+- **Auto-reload**: Pages automatically refresh when unblocked
 
 ### User Interface
 - Clean popup interface with real-time controls
@@ -20,9 +25,10 @@ A powerful browser extension that helps you stay focused and productive by block
 - **🌐 Multi-language Support**: English and Russian localization
 
 ### Technical Features
-- Network-level blocking using Chrome's declarativeNetRequest API
-- No custom pages - shows standard browser errors
-- Settings synchronization across browser instances
+- Content script injection for custom blocking pages
+- Chrome storage API for data persistence
+- Cross-tab messaging for real-time updates
+- Background service worker for timer management
 - Local storage - no data collection or tracking
 
 ## 🚀 Installation
@@ -49,6 +55,7 @@ A powerful browser extension that helps you stay focused and productive by block
 - **icons/**
   - 🟢 **icon48.png**
 
+
 ## 📖 How to Use
 
 ### Adding Websites
@@ -59,64 +66,68 @@ A powerful browser extension that helps you stay focused and productive by block
 ### Managing Blocking
 - **Toggle Switch**: Click to enable/disable blocking
 - **Status Badges**:
-  - 🟢 **"on"** - Website is blocked
-  - 🟡 **"60s"** - Countdown to unblocking
+  - 🟢 **"on"** - Website is blocked (shows blocked page)
+  - 🟡 **"60s"** - Countdown to unblocking (shows timer)
   - 🔴 **"off"** - Website is accessible
 - **Remove Button** (×): Delete website from list
 
-### Language Selection
-- The extension automatically detects your browser language
-- Supports English (default) and Russian
-- Manual language switching available in extension settings
-
 ### Blocking Behavior
-- **Enabled**: Website loads with browser network error
-- **Disabled**: 60-second delay, then website becomes accessible
-- **During Countdown**: Toggle is disabled until countdown completes
+- **Enabled**: Shows custom blocked page with information
+- **Disabled with Delay**: Shows countdown page with progress bar
+- **Fully Disabled**: Website loads normally
+- **Subdomains**: All subdomains are automatically blocked/unblocked with main domain
+
+### Language Selection
+- Use the dropdown in the popup to switch between English and Russian
+- Interface text updates immediately
+- Settings are saved for future sessions
 
 ## 🛠 Technical Details
 
+### Architecture
+- **Background Script**: Manages timers, storage, and cross-tab communication
+- **Content Script**: Injects blocking pages and handles real-time updates
+- **Popup Interface**: Provides user controls and site management
+- **Service Worker**: Handles background operations and persistence
+
+### Key Components
+- `background.js` - Core logic, timer management, storage operations
+- `content.js` - Page blocking, countdown display, real-time updates
+- `popup.js` - User interface, site management, localization
+- `blocked-page.js` - Countdown timer for delayed unblocking pages
+
 ### APIs Used
-- `declarativeNetRequest` - Network-level blocking
-- `storage` - Settings persistence
-- `host_permissions` - Website access
-- `i18n` - Internationalization and localization
-
-### Localization Implementation
-- Chrome i18n API for string localization
-- Fallback to English for unsupported languages
-- Easy to add new languages by creating additional message files
-
-### Blocking Rules
-- Blocks main frame and sub-resources
-- Works on all URL schemes (HTTP/HTTPS)
-- Includes subdomains automatically
+- `chrome.storage` - Settings persistence
+- `chrome.tabs` - Tab management and messaging
+- `chrome.runtime` - Extension communication
+- `chrome.i18n` - Internationalization
 
 ### Data Storage
 - All data stored locally in Chrome sync storage
+- Sites list with domains, enabled status, and timer information
+- Language preferences
 - No external servers or data collection
-- Complete privacy protection
 
 ## 🔧 Development
 
-### Code Structure
-- **Popup Interface**: `popup.html`, `popup.js`, `styles.css`
-- **Background Service**: `background.js`
-- **Manifest**: `manifest.json` (Manifest V3)
-- **Localization**: `_locales/` directory with language-specific message files
-
-### Key Functions
-- `sitesToRules()` - Converts site list to blocking rules
-- `updateBlockRules()` - Applies blocking rules
-- `disableSiteWithDelay()` - Implements 60-second delay
-- `toggleSite()` - Handles enable/disable toggles
-- Localized string access via `chrome.i18n.getMessage()`
-
 ### Adding New Languages
 1. Create new directory in `_locales/` (e.g., `es` for Spanish)
-2. Add `messages.json` with translated strings
-3. Update `manifest.json` to include the new locale
-4. Test localization in browser with corresponding language setting
+2. Add `messages.json` with translated strings following the existing format
+3. Update language selector in `popup.html` and `popup.js`
+4. Test localization in browser
+
+### Key Functions
+- `disableSiteWithDelay()` - Implements 60-second delay with countdown
+- `enableSite()` - Immediately blocks site
+- `completeSiteDelay()` - Finalizes unblocking process
+- `updateCountdownInTabs()` - Synchronizes timers across tabs
+- `initializeTimers()` - Restores timers on extension startup
+
+### Message Types
+- `toggleSite` - Enable/disable site blocking
+- `updateCountdown` - Update countdown timer display
+- `siteBlocked`/`siteUnblocked` - Notify tabs of status changes
+- `getSiteStatus` - Retrieve current blocking status
 
 ## 📝 License
 
@@ -125,16 +136,15 @@ This project is open source and available under the MIT License.
 ## 🐛 Troubleshooting
 
 ### Common Issues
-- **Extension not loading**: Check Chrome version supports Manifest V3
 - **Websites not blocking**: Verify domain format and refresh page
-- **Settings not saving**: Check Chrome sync storage permissions
-- **Text not displaying correctly**: Verify localization files are properly formatted
+- **Timer not updating**: Check if multiple tabs are open for the same domain
+- **Settings not saving**: Verify Chrome sync storage permissions
+- **Extension not loading**: Check Chrome version supports Manifest V3
 
-### Recent Updates
-- Enhanced UI/UX with improved visual feedback
-- Optimized performance and reduced memory usage
-- Fixed localization issues for Russian language
-- Improved error handling and user notifications
+### Performance Notes
+- Timers are efficiently managed with `setInterval`/`setTimeout`
+- Cross-tab messaging is optimized to only affect relevant domains
+- Storage operations are asynchronous to prevent UI blocking
 
 ---
 
