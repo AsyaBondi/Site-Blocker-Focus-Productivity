@@ -130,6 +130,12 @@ This project is open source and available under the MIT License.
 - **Settings not saving**: Check Chrome sync storage permissions
 - **Text not displaying correctly**: Verify localization files are properly formatted
 
+### Recent Updates
+- Enhanced UI/UX with improved visual feedback
+- Optimized performance and reduced memory usage
+- Fixed localization issues for Russian language
+- Improved error handling and user notifications
+
 ---
 
 **Developed with AI assistance from DeepSeek** 🤖

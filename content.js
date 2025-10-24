@@ -222,8 +222,6 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
       ${displayContent}
       
       <div class="buttons">
-        <button id="goBack">Вернуться назад</button>
-        <button id="goHome">Перейти на главную</button>
         <button id="reloadPage">Обновить страницу</button>
       </div>
       ${mode === 'delay' ? '<p class="auto-reload-message">Страница автоматически обновится после окончания таймера</p>' : ''}
@@ -301,16 +299,6 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
           }
         }
       }
-      
-      document.getElementById('goBack').addEventListener('click', function() {
-        if (autoReloadTimeout) clearTimeout(autoReloadTimeout);
-        window.history.back();
-      });
-      
-      document.getElementById('goHome').addEventListener('click', function() {
-        if (autoReloadTimeout) clearTimeout(autoReloadTimeout);
-        window.location.href = 'https://www.google.com';
-      });
       
       document.getElementById('reloadPage').addEventListener('click', function() {
         if (autoReloadTimeout) clearTimeout(autoReloadTimeout);
