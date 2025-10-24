@@ -42,10 +42,7 @@ site-blocker/
 ├── background.js
 ├── styles.css
 └── icons/
-├── icon16.png
-├── icon48.png
-└── icon128.png
-
+    └── icon48.png
 
 ## 📖 How to Use
 
