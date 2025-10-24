@@ -85,9 +85,6 @@ function getSiteStatusAndShowBlockPage(host) {
 
 // Функция для нахождения основного домена из поддомена
 function findMainDomain(host) {
-  const blockedSites = []; // Мы получим этот список из хранилища
-  
-  // Временно используем простую логику - берем домен второго уровня
   const parts = host.split('.');
   if (parts.length > 2) {
     // Для поддоменов типа ru.yummyani.me возвращаем yummyani.me
@@ -210,6 +207,11 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
         line-height: 1.6;
         margin: 10px 0;
       }
+      .auto-reload-message {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
@@ -224,11 +226,13 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
         <button id="goHome">Перейти на главную</button>
         <button id="reloadPage">Обновить страницу</button>
       </div>
+      ${mode === 'delay' ? '<p class="auto-reload-message">Страница автоматически обновится после окончания таймера</p>' : ''}
     </div>
     
     <script>
       let timeLeft = ${initialTimeLeft};
       let countdownInterval;
+      let autoReloadTimeout;
       
       function updateCountdown() {
         const countdownElement = document.getElementById('countdown');
@@ -278,14 +282,20 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
             countdownElement.style.color = '#4CAF50';
           }
           if (countdownMessage) {
-            countdownMessage.textContent = 'Нажмите "Обновить страницу" для доступа к сайту';
+            countdownMessage.textContent = 'Страница обновится автоматически...';
           }
           if (progressFill) {
             progressFill.style.width = '0%';
             progressFill.style.background = '#4CAF50';
           }
           
-          // Показываем кнопку обновления
+          // Автоматически обновляем страницу через 2 секунды
+          autoReloadTimeout = setTimeout(() => {
+            console.log('Auto-reloading page after countdown');
+            window.location.reload();
+          }, 2000);
+          
+          // Показываем кнопку обновления (на всякий случай)
           if (reloadBtn) {
             reloadBtn.style.display = 'block';
           }
@@ -293,14 +303,17 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
       }
       
       document.getElementById('goBack').addEventListener('click', function() {
+        if (autoReloadTimeout) clearTimeout(autoReloadTimeout);
         window.history.back();
       });
       
       document.getElementById('goHome').addEventListener('click', function() {
+        if (autoReloadTimeout) clearTimeout(autoReloadTimeout);
         window.location.href = 'https://www.google.com';
       });
       
       document.getElementById('reloadPage').addEventListener('click', function() {
+        if (autoReloadTimeout) clearTimeout(autoReloadTimeout);
         window.location.reload();
       });
       
@@ -324,33 +337,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     // Проверяем, относится ли разблокировка к текущему сайту
     if (mainDomain === message.domain) {
-      const reloadBtn = document.getElementById('reloadPage');
-      const countdownElement = document.getElementById('countdown');
-      const countdownMessage = document.getElementById('countdownMessage');
+      console.log('Auto-reloading page due to site unblocking');
       
-      if (reloadBtn) {
-        // Останавливаем отсчет если он был
-        if (window.countdownInterval) {
-          clearInterval(window.countdownInterval);
-        }
-        
-        // Обновляем интерфейс
-        if (countdownElement) {
-          countdownElement.textContent = 'Сайт разблокирован!';
-          countdownElement.style.color = '#4CAF50';
-        }
-        if (countdownMessage) {
-          countdownMessage.textContent = 'Нажмите "Обновить страницу" для доступа к сайту';
-        }
-        
-        const progressFill = document.getElementById('progressFill');
-        if (progressFill) {
-          progressFill.style.width = '0%';
-          progressFill.style.background = '#4CAF50';
-        }
-        
-        reloadBtn.style.display = 'block';
-      }
+      // Автоматически обновляем страницу
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     }
   }
   
@@ -405,6 +397,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } else if (timeLeft <= 30) {
           countdownElement.style.color = '#ff9800';
           progressFill.style.background = '#ff9800';
+        }
+        
+        // Если время вышло, обновляем страницу
+        if (timeLeft === 0) {
+          console.log('Countdown finished, reloading page');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
         }
       }
     }
