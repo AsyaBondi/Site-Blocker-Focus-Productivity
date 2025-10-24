@@ -1,68 +1,6 @@
 // Кэш для таймеров задержки
 const delayTimers = new Map();
 
-// Функция для преобразования сайтов в правила
-function sitesToRules(sites) {
-  const now = new Date();
-  
-  // Блокируем сайты которые: включены ИЛИ выключены но с активной задержкой
-  const sitesToBlock = sites.filter(site => {
-    if (site.enabled) return true;
-    if (site.disabledUntil && new Date(site.disabledUntil) > now) return true;
-    return false;
-  });
-  
-  return sitesToBlock.map((site, index) => ({
-    id: index + 1,
-    priority: 1,
-    action: {
-      type: "block"
-    },
-    condition: {
-      urlFilter: `||${site.domain}`,
-      resourceTypes: [
-        "main_frame",
-        "sub_frame",
-        "script",
-        "image",
-        "stylesheet",
-        "object",
-        "xmlhttprequest",
-        "other"
-      ]
-    }
-  }));
-}
-
-// Функция для обновления правил блокировки
-async function updateBlockRules(sites) {
-  try {
-    // Получаем текущие динамические правила
-    const currentRules = await chrome.declarativeNetRequest.getDynamicRules();
-    const currentRuleIds = currentRules.map(rule => rule.id);
-
-    // Удаляем старые правила
-    if (currentRuleIds.length > 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: currentRuleIds
-      });
-    }
-
-    // Добавляем новые правила
-    const newRules = sitesToRules(sites);
-    if (newRules.length > 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        addRules: newRules
-      });
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Ошибка при обновлении правил:', error);
-    return { success: false, error: error.message };
-  }
-}
-
 // Загрузка сайтов из хранилища
 async function loadSites() {
   return new Promise((resolve) => {
@@ -82,10 +20,71 @@ async function saveSites(sites) {
   });
 }
 
+// Функция для отправки обновлений таймера во все вкладки
+function updateCountdownInTabs(siteDomain, timeLeft) {
+  chrome.tabs.query({}, function(tabs) {
+    tabs.forEach(tab => {
+      if (tab.url && tab.url.includes(siteDomain)) {
+        try {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'updateCountdown',
+            timeLeft: timeLeft,
+            domain: siteDomain
+          });
+        } catch (error) {
+          console.log('Could not update countdown in tab:', error);
+        }
+      }
+    });
+  });
+}
+
+// Функция для завершения задержки и полного разблокирования сайта
+async function completeSiteDelay(siteDomain) {
+  console.log(`Completing delay for site: ${siteDomain}`);
+  
+  const sites = await loadSites();
+  const updatedSites = sites.map(site => 
+    site.domain === siteDomain 
+      ? {...site, disabledUntil: null}
+      : site
+  );
+  
+  await saveSites(updatedSites);
+  
+  // Очищаем таймеры
+  const timerData = delayTimers.get(siteDomain);
+  if (timerData) {
+    clearInterval(timerData.updateInterval);
+    delayTimers.delete(siteDomain);
+  }
+  
+  // Уведомляем все вкладки с этим сайтом о разблокировке
+  chrome.tabs.query({}, function(tabs) {
+    tabs.forEach(tab => {
+      if (tab.url && tab.url.includes(siteDomain)) {
+        try {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'siteUnblocked', 
+            domain: siteDomain
+          });
+        } catch (error) {
+          console.log('Could not send message to tab:', error);
+        }
+      }
+    });
+  });
+  
+  console.log(`Site ${siteDomain} is now fully unblocked`);
+  return updatedSites;
+}
+
 // Функция для выключения сайта с задержкой
 async function disableSiteWithDelay(siteDomain) {
+  console.log(`Disabling site with 60-second delay: ${siteDomain}`);
+  
   const sites = await loadSites();
-  const disabledUntil = new Date(Date.now() + 60000); // +1 минута
+  const disabledUntil = new Date(Date.now() + 60000);
   
   const updatedSites = sites.map(site => 
     site.domain === siteDomain 
@@ -95,32 +94,39 @@ async function disableSiteWithDelay(siteDomain) {
   
   await saveSites(updatedSites);
   
-  // Устанавливаем таймер на 1 минуту для снятия блокировки
-  const timerId = setTimeout(async () => {
-    const currentSites = await loadSites();
-    const site = currentSites.find(s => s.domain === siteDomain);
-    
-    // Если сайт все еще выключен, обновляем правила (снимаем блокировку)
-    if (site && !site.enabled) {
-      await updateBlockRules(currentSites);
+  // Сразу отправляем начальное значение таймера во все вкладки
+  updateCountdownInTabs(siteDomain, 60);
+  
+  // Устанавливаем таймер на 60 секунд с периодическим обновлением
+  let timeLeft = 60;
+  const updateInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft > 0) {
+      updateCountdownInTabs(siteDomain, timeLeft);
     }
-    delayTimers.delete(siteDomain);
+  }, 1000);
+  
+  const timerId = setTimeout(async () => {
+    clearInterval(updateInterval);
+    console.log(`60-second delay expired for ${siteDomain}`);
+    await completeSiteDelay(siteDomain);
   }, 60000);
   
-  delayTimers.set(siteDomain, timerId);
-  
-  // Немедленно обновляем правила (сайт продолжает блокироваться)
-  await updateBlockRules(updatedSites);
+  // Сохраняем оба таймера
+  delayTimers.set(siteDomain, {timerId, updateInterval});
   
   return updatedSites;
 }
 
-// Функция для включения сайта (сразу начинает блокировать)
+// Функция для включения сайта
 async function enableSite(siteDomain) {
+  console.log(`Enabling site: ${siteDomain}`);
+  
   // Отменяем таймер задержки, если он есть
-  const timerId = delayTimers.get(siteDomain);
-  if (timerId) {
-    clearTimeout(timerId);
+  const timerData = delayTimers.get(siteDomain);
+  if (timerData) {
+    clearTimeout(timerData.timerId);
+    clearInterval(timerData.updateInterval);
     delayTimers.delete(siteDomain);
   }
   
@@ -132,8 +138,24 @@ async function enableSite(siteDomain) {
   );
   
   await saveSites(updatedSites);
-  await updateBlockRules(updatedSites);
   
+  // Уведомляем все вкладки о блокировке
+  chrome.tabs.query({}, function(tabs) {
+    tabs.forEach(tab => {
+      if (tab.url && tab.url.includes(siteDomain)) {
+        try {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'siteBlocked',
+            domain: siteDomain
+          });
+        } catch (error) {
+          console.log('Could not notify tab about blocking:', error);
+        }
+      }
+    });
+  });
+  
+  console.log(`Site ${siteDomain} is now blocked`);
   return updatedSites;
 }
 
@@ -144,34 +166,47 @@ async function initializeTimers() {
   
   for (const site of sites) {
     if (site.disabledUntil && new Date(site.disabledUntil) > now) {
-      const timeLeft = new Date(site.disabledUntil) - now;
-      const timerId = setTimeout(async () => {
-        const currentSites = await loadSites();
-        await updateBlockRules(currentSites);
-        delayTimers.delete(site.domain);
-      }, timeLeft);
+      const timeLeftMs = new Date(site.disabledUntil) - now;
+      const timeLeftSeconds = Math.ceil(timeLeftMs / 1000);
       
-      delayTimers.set(site.domain, timerId);
+      console.log(`Restoring timer for ${site.domain}, time left: ${timeLeftSeconds}s`);
+      
+      // Сразу отправляем текущее значение таймера
+      updateCountdownInTabs(site.domain, timeLeftSeconds);
+      
+      // Устанавливаем таймер с периодическим обновлением
+      let currentTimeLeft = timeLeftSeconds;
+      const updateInterval = setInterval(() => {
+        currentTimeLeft--;
+        if (currentTimeLeft > 0) {
+          updateCountdownInTabs(site.domain, currentTimeLeft);
+        }
+      }, 1000);
+      
+      const timerId = setTimeout(async () => {
+        clearInterval(updateInterval);
+        console.log(`Restored timer expired for ${site.domain}`);
+        await completeSiteDelay(site.domain);
+      }, timeLeftMs);
+      
+      delayTimers.set(site.domain, {timerId, updateInterval});
+      
+    } else if (site.disabledUntil && new Date(site.disabledUntil) <= now) {
+      // Если задержка уже истекла, но сайт еще не обновлен
+      console.log(`Cleaning up expired delay for ${site.domain}`);
+      await completeSiteDelay(site.domain);
     }
   }
 }
 
 // Инициализация расширения
 chrome.runtime.onInstalled.addListener(async () => {
+  console.log('Extension installed/updated');
   await initializeTimers();
-  const sites = await loadSites();
-  await updateBlockRules(sites);
 });
 
 // Обработчик сообщений
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'updateBlockedSites') {
-    updateBlockRules(message.sites)
-      .then(result => sendResponse(result))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true;
-  }
-  
   if (message.action === 'getSites') {
     chrome.storage.sync.get(['sites'], function(result) {
       sendResponse({ sites: result.sites || [] });
@@ -183,12 +218,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { siteDomain, enabled } = message;
     
     if (enabled) {
-      // Включение сайта - сразу блокируем
+      // Включение сайта
       enableSite(siteDomain)
         .then(sites => sendResponse({ 
           success: true, 
           sites,
-          message: chrome.i18n.getMessage('siteBlocked')
+          message: 'Site is now blocked'
         }))
         .catch(error => sendResponse({ success: false, error: error.message }));
     } else {
@@ -197,7 +232,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(sites => sendResponse({ 
           success: true, 
           sites,
-          message: chrome.i18n.getMessage('siteWillUnblock')
+          message: 'Site will be unblocked in 60 seconds'
         }))
         .catch(error => sendResponse({ success: false, error: error.message }));
     }
@@ -223,6 +258,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ error: 'Site not found' });
       }
     });
+    return true;
+  }
+  
+  if (message.action === 'getBlockedSites') {
+    // Для content script - получить список заблокированных сайтов
+    chrome.storage.sync.get(['sites'], function(result) {
+      const sites = result.sites || [];
+      const now = new Date();
+      const blockedSites = sites.filter(site => 
+        site.enabled || (site.disabledUntil && new Date(site.disabledUntil) > now)
+      ).map(site => site.domain);
+      
+      sendResponse({ sites: blockedSites });
+    });
+    return true;
+  }
+  
+  if (message.action === 'checkSiteBlocked') {
+    // Проверка конкретного сайта для content script
+    chrome.storage.sync.get(['sites'], function(result) {
+      const sites = result.sites || [];
+      const now = new Date();
+      const isBlocked = sites.some(site => 
+        site.domain === message.siteDomain && 
+        (site.enabled || (site.disabledUntil && new Date(site.disabledUntil) > now))
+      );
+      
+      sendResponse({ blocked: isBlocked });
+    });
+    return true;
+  }
+  
+  if (message.action === 'forceUnblockSite') {
+    // Принудительное разблокирование сайта (для тестирования)
+    completeSiteDelay(message.siteDomain)
+      .then(sites => sendResponse({ success: true, sites }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 });

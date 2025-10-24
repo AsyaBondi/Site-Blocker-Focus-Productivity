@@ -68,6 +68,11 @@ function loadSites() {
   chrome.runtime.sendMessage(
     {action: 'getSites'}, 
     function(response) {
+      // Проверяем, не закрылось ли соединение
+      if (chrome.runtime.lastError) {
+        console.log('Connection closed, ignoring response');
+        return;
+      }
       if (response && response.sites) {
         renderSitesList(response.sites);
         updateStats(response.sites);
@@ -80,6 +85,8 @@ function addSite(site) {
   chrome.runtime.sendMessage(
     {action: 'getSites'},
     function(response) {
+      if (chrome.runtime.lastError) return;
+      
       const currentSites = response?.sites || [];
       
       // Проверяем, нет ли уже такого сайта в списке
@@ -103,6 +110,8 @@ function addSite(site) {
 function toggleSite(siteDomain, currentState) {
   const newState = !currentState;
   
+  console.log(`Toggling site ${siteDomain} from ${currentState} to ${newState}`);
+  
   chrome.runtime.sendMessage(
     {
       action: 'toggleSite',
@@ -110,6 +119,11 @@ function toggleSite(siteDomain, currentState) {
       enabled: newState
     },
     function(response) {
+      if (chrome.runtime.lastError) {
+        console.log('Toggle response error:', chrome.runtime.lastError);
+        return;
+      }
+      
       if (response && response.success) {
         renderSitesList(response.sites);
         updateStats(response.sites);
@@ -133,6 +147,8 @@ function removeSite(siteDomain) {
     chrome.runtime.sendMessage(
       {action: 'getSites'},
       function(response) {
+        if (chrome.runtime.lastError) return;
+        
         const currentSites = response?.sites || [];
         const newSites = currentSites.filter(site => site.domain !== siteDomain);
         
@@ -145,19 +161,10 @@ function removeSite(siteDomain) {
 function saveSites(sites) {
   // Сохраняем в хранилище
   chrome.storage.sync.set({sites: sites}, function() {
-    // Обновляем правила блокировки
-    chrome.runtime.sendMessage(
-      {action: 'updateBlockedSites', sites: sites},
-      function(response) {
-        if (response && response.success) {
-          renderSitesList(sites);
-          updateStats(sites);
-          showNotification(i18n.getMessage('settingsSaved'));
-        } else {
-          alert('Error saving: ' + (response?.error || 'unknown error'));
-        }
-      }
-    );
+    // Обновляем список без отправки сообщения в background
+    renderSitesList(sites);
+    updateStats(sites);
+    showNotification(i18n.getMessage('settingsSaved') || 'Settings saved');
   });
 }
 
@@ -167,6 +174,8 @@ function startCountdown(siteDomain) {
     chrome.runtime.sendMessage(
       {action: 'getSiteStatus', siteDomain: siteDomain},
       function(response) {
+        if (chrome.runtime.lastError) return;
+        
         if (response && !response.error) {
           if (response.isInDelay && response.timeLeft > 0) {
             // Обновляем отображение времени
@@ -197,7 +206,7 @@ function updateSiteDisplay(siteDomain, timeLeft) {
           statusBadge.textContent = `${timeLeft}s`;
           statusBadge.className = 'status-badge status-delay';
         } else {
-          statusBadge.textContent = i18n.getMessage('statusDisabled');
+          statusBadge.textContent = i18n.getMessage('statusDisabled') || 'off';
           statusBadge.className = 'status-badge status-inactive';
         }
       }
@@ -213,7 +222,7 @@ function renderSitesList(sites) {
   if (sites.length === 0) {
     const emptyMessage = document.createElement('div');
     emptyMessage.className = 'empty-message';
-    emptyMessage.textContent = i18n.getMessage('emptyList');
+    emptyMessage.textContent = i18n.getMessage('emptyList') || 'No sites added yet';
     blockedList.appendChild(emptyMessage);
     return;
   }
@@ -248,14 +257,14 @@ function renderSitesList(sites) {
     
     if (site.enabled) {
       statusBadge.className = 'status-badge status-active';
-      statusBadge.textContent = i18n.getMessage('statusEnabled');
+      statusBadge.textContent = i18n.getMessage('statusEnabled') || 'on';
     } else if (isInDelay) {
       statusBadge.className = 'status-badge status-delay';
       const timeLeft = Math.ceil((new Date(site.disabledUntil) - now) / 1000);
       statusBadge.textContent = `${timeLeft}s`;
     } else {
       statusBadge.className = 'status-badge status-inactive';
-      statusBadge.textContent = i18n.getMessage('statusDisabled');
+      statusBadge.textContent = i18n.getMessage('statusDisabled') || 'off';
     }
     
     // Контейнер для элементов управления
@@ -286,7 +295,7 @@ function renderSitesList(sites) {
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-btn';
     removeBtn.innerHTML = '×';
-    removeBtn.title = i18n.getMessage('remove');
+    removeBtn.title = i18n.getMessage('remove') || 'Remove';
     removeBtn.addEventListener('click', function() {
       removeSite(site.domain);
     });
@@ -320,10 +329,10 @@ function updateStats(sites) {
   const disabled = total - enabled - inDelay;
   
   stats.innerHTML = `
-    ${i18n.getMessage('totalSites')}: ${total} | 
-    ${i18n.getMessage('blockedSites')}: <span style="color: #4CAF50">${enabled}</span> | 
-    ${i18n.getMessage('inDelaySites')}: <span style="color: #ff9800">${inDelay}</span> | 
-    ${i18n.getMessage('availableSites')}: <span style="color: #f44336">${disabled}</span>
+    ${i18n.getMessage('totalSites') || 'Total'}: ${total} | 
+    ${i18n.getMessage('blockedSites') || 'Blocked'}: <span style="color: #4CAF50">${enabled}</span> | 
+    ${i18n.getMessage('inDelaySites') || 'In delay'}: <span style="color: #ff9800">${inDelay}</span> | 
+    ${i18n.getMessage('availableSites') || 'Available'}: <span style="color: #f44336">${disabled}</span>
   `;
 }
 
