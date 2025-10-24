@@ -35,14 +35,13 @@ A powerful browser extension that helps you stay focused and productive by block
 
 ### File Structure
 
-site-blocker/
-├── manifest.json
-├── popup.html
-├── popup.js
-├── background.js
-├── styles.css
-└── icons/
-    └── icon48.png
+- **manifest.json**
+- **popup.html**
+- **popup.js**
+- **background.js**
+- **styles.css**
+- **icons/**
+  - 🟢 **icon48.png**
 
 ## 📖 How to Use
 
