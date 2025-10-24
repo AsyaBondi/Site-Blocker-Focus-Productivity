@@ -188,7 +188,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(sites => sendResponse({ 
           success: true, 
           sites,
-          message: 'Сайт заблокирован'
+          message: chrome.i18n.getMessage('siteBlocked')
         }))
         .catch(error => sendResponse({ success: false, error: error.message }));
     } else {
@@ -197,7 +197,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .then(sites => sendResponse({ 
           success: true, 
           sites,
-          message: 'Сайт будет разблокирован через 1 минуту'
+          message: chrome.i18n.getMessage('siteWillUnblock')
         }))
         .catch(error => sendResponse({ success: false, error: error.message }));
     }
@@ -226,5 +226,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
-
-// Убрал обработчик onUpdated - больше не показываем страницу блокировки

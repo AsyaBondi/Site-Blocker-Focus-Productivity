@@ -5,13 +5,21 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>🚫 Блокировщик сайтов</h1>
-  
-  <div class="input-group">
-    <input type="text" id="siteInput" placeholder="Введите домен сайта (например: youtube.com)">
+  <div class="header">
+    <h1>🚫 <span id="extensionTitle">Site Blocker</span></h1>
+    <div class="language-selector">
+      <select id="languageSelect">
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+      </select>
+    </div>
   </div>
   
-  <button id="addBtn">Добавить сайт</button>
+  <div class="input-group">
+    <input type="text" id="siteInput" placeholder="Enter domain (e.g., youtube.com)">
+  </div>
+  
+  <button id="addBtn">Add site</button>
   
   <div class="blocked-list" id="blockedList">
     <!-- Список сайтов будет здесь -->

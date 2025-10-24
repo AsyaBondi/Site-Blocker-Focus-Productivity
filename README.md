@@ -17,6 +17,7 @@ A powerful browser extension that helps you stay focused and productive by block
 - Live countdown timers for delayed unblocking
 - Quick add/remove functionality
 - Statistics dashboard showing blocking status
+- **🌐 Multi-language Support**: English and Russian localization
 
 ### Technical Features
 - Network-level blocking using Chrome's declarativeNetRequest API
@@ -40,6 +41,11 @@ A powerful browser extension that helps you stay focused and productive by block
 - **popup.js**
 - **background.js**
 - **styles.css**
+- **_locales/** (Localization files)
+  - **en/** (English)
+    - **messages.json**
+  - **ru/** (Russian)
+    - **messages.json**
 - **icons/**
   - 🟢 **icon48.png**
 
@@ -58,6 +64,11 @@ A powerful browser extension that helps you stay focused and productive by block
   - 🔴 **"off"** - Website is accessible
 - **Remove Button** (×): Delete website from list
 
+### Language Selection
+- The extension automatically detects your browser language
+- Supports English (default) and Russian
+- Manual language switching available in extension settings
+
 ### Blocking Behavior
 - **Enabled**: Website loads with browser network error
 - **Disabled**: 60-second delay, then website becomes accessible
@@ -69,6 +80,12 @@ A powerful browser extension that helps you stay focused and productive by block
 - `declarativeNetRequest` - Network-level blocking
 - `storage` - Settings persistence
 - `host_permissions` - Website access
+- `i18n` - Internationalization and localization
+
+### Localization Implementation
+- Chrome i18n API for string localization
+- Fallback to English for unsupported languages
+- Easy to add new languages by creating additional message files
 
 ### Blocking Rules
 - Blocks main frame and sub-resources
@@ -86,12 +103,20 @@ A powerful browser extension that helps you stay focused and productive by block
 - **Popup Interface**: `popup.html`, `popup.js`, `styles.css`
 - **Background Service**: `background.js`
 - **Manifest**: `manifest.json` (Manifest V3)
+- **Localization**: `_locales/` directory with language-specific message files
 
 ### Key Functions
 - `sitesToRules()` - Converts site list to blocking rules
 - `updateBlockRules()` - Applies blocking rules
 - `disableSiteWithDelay()` - Implements 60-second delay
 - `toggleSite()` - Handles enable/disable toggles
+- Localized string access via `chrome.i18n.getMessage()`
+
+### Adding New Languages
+1. Create new directory in `_locales/` (e.g., `es` for Spanish)
+2. Add `messages.json` with translated strings
+3. Update `manifest.json` to include the new locale
+4. Test localization in browser with corresponding language setting
 
 ## 📝 License
 
@@ -103,6 +128,7 @@ This project is open source and available under the MIT License.
 - **Extension not loading**: Check Chrome version supports Manifest V3
 - **Websites not blocking**: Verify domain format and refresh page
 - **Settings not saving**: Check Chrome sync storage permissions
+- **Text not displaying correctly**: Verify localization files are properly formatted
 
 ---
 

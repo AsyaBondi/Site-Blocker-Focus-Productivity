@@ -1,0 +1,66 @@
+{
+  "extensionName": {
+    "message": "Блокировщик сайтов",
+    "description": "Название расширения"
+  },
+  "extensionDescription": {
+    "message": "Блокируйте отвлекающие сайты с умной системой задержки",
+    "description": "Описание расширения"
+  },
+  "addSite": {
+    "message": "Добавить сайт",
+    "description": "Кнопка добавления сайта"
+  },
+  "siteInputPlaceholder": {
+    "message": "Введите домен (например, youtube.com)",
+    "description": "Подсказка в поле ввода"
+  },
+  "emptyList": {
+    "message": "Список сайтов пуст\nДобавьте сайты для блокировки",
+    "description": "Сообщение при пустом списке"
+  },
+  "statusEnabled": {
+    "message": "вкл",
+    "description": "Статус когда сайт включен"
+  },
+  "statusDisabled": {
+    "message": "выкл",
+    "description": "Статус когда сайт выключен"
+  },
+  "totalSites": {
+    "message": "Всего",
+    "description": "Всего сайтов"
+  },
+  "blockedSites": {
+    "message": "Заблокировано",
+    "description": "Заблокированные сайты"
+  },
+  "inDelaySites": {
+    "message": "В задержке",
+    "description": "Сайты в задержке"
+  },
+  "availableSites": {
+    "message": "Доступно",
+    "description": "Доступные сайты"
+  },
+  "language": {
+    "message": "Язык",
+    "description": "Выбор языка"
+  },
+  "remove": {
+    "message": "Удалить",
+    "description": "Удалить сайт"
+  },
+  "siteBlocked": {
+    "message": "Сайт заблокирован",
+    "description": "Уведомление при блокировке"
+  },
+  "siteWillUnblock": {
+    "message": "Сайт будет разблокирован через 1 минуту",
+    "description": "Уведомление при выключении"
+  },
+  "settingsSaved": {
+    "message": "Настройки сохранены",
+    "description": "Уведомление при сохранении"
+  }
+}

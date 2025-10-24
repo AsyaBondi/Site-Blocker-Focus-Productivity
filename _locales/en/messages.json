@@ -1,0 +1,66 @@
+{
+  "extensionName": {
+    "message": "Site Blocker",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Block distracting websites with smart delay system",
+    "description": "Extension description"
+  },
+  "addSite": {
+    "message": "Add site",
+    "description": "Add site button"
+  },
+  "siteInputPlaceholder": {
+    "message": "Enter domain (e.g., youtube.com)",
+    "description": "Placeholder for site input"
+  },
+  "emptyList": {
+    "message": "Site list is empty\nAdd sites to block",
+    "description": "Empty list message"
+  },
+  "statusEnabled": {
+    "message": "on",
+    "description": "Status when site is enabled"
+  },
+  "statusDisabled": {
+    "message": "off",
+    "description": "Status when site is disabled"
+  },
+  "totalSites": {
+    "message": "Total",
+    "description": "Total sites label"
+  },
+  "blockedSites": {
+    "message": "Blocked",
+    "description": "Blocked sites label"
+  },
+  "inDelaySites": {
+    "message": "In delay",
+    "description": "Sites in delay label"
+  },
+  "availableSites": {
+    "message": "Available",
+    "description": "Available sites label"
+  },
+  "language": {
+    "message": "Language",
+    "description": "Language selector label"
+  },
+  "remove": {
+    "message": "Remove",
+    "description": "Remove button tooltip"
+  },
+  "siteBlocked": {
+    "message": "Site blocked",
+    "description": "Notification when site is blocked"
+  },
+  "siteWillUnblock": {
+    "message": "Site will be unblocked in 1 minute",
+    "description": "Notification when site is set to unblock"
+  },
+  "settingsSaved": {
+    "message": "Settings saved",
+    "description": "Notification when settings are saved"
+  }
+}
