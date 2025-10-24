@@ -24,15 +24,61 @@ async function saveSites(sites) {
 function updateCountdownInTabs(siteDomain, timeLeft) {
   chrome.tabs.query({}, function(tabs) {
     tabs.forEach(tab => {
-      if (tab.url && tab.url.includes(siteDomain)) {
+      if (tab.url) {
         try {
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'updateCountdown',
-            timeLeft: timeLeft,
-            domain: siteDomain
-          });
+          const tabHost = new URL(tab.url).hostname;
+          // Проверяем, относится ли вкладка к домену или его поддоменам
+          if (tabHost === siteDomain || tabHost.endsWith('.' + siteDomain)) {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'updateCountdown',
+              timeLeft: timeLeft,
+              domain: siteDomain
+            });
+          }
         } catch (error) {
           console.log('Could not update countdown in tab:', error);
+        }
+      }
+    });
+  });
+}
+
+// Функция для уведомления вкладок о блокировке
+function notifyTabsAboutBlocking(siteDomain) {
+  chrome.tabs.query({}, function(tabs) {
+    tabs.forEach(tab => {
+      if (tab.url) {
+        try {
+          const tabHost = new URL(tab.url).hostname;
+          if (tabHost === siteDomain || tabHost.endsWith('.' + siteDomain)) {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'siteBlocked',
+              domain: siteDomain
+            });
+          }
+        } catch (error) {
+          console.log('Could not notify tab about blocking:', error);
+        }
+      }
+    });
+  });
+}
+
+// Функция для уведомления вкладок о разблокировке
+function notifyTabsAboutUnblocking(siteDomain) {
+  chrome.tabs.query({}, function(tabs) {
+    tabs.forEach(tab => {
+      if (tab.url) {
+        try {
+          const tabHost = new URL(tab.url).hostname;
+          if (tabHost === siteDomain || tabHost.endsWith('.' + siteDomain)) {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'siteUnblocked',
+              domain: siteDomain
+            });
+          }
+        } catch (error) {
+          console.log('Could not notify tab about unblocking:', error);
         }
       }
     });
@@ -59,23 +105,10 @@ async function completeSiteDelay(siteDomain) {
     delayTimers.delete(siteDomain);
   }
   
-  // Уведомляем все вкладки с этим сайтом о разблокировке
-  chrome.tabs.query({}, function(tabs) {
-    tabs.forEach(tab => {
-      if (tab.url && tab.url.includes(siteDomain)) {
-        try {
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'siteUnblocked', 
-            domain: siteDomain
-          });
-        } catch (error) {
-          console.log('Could not send message to tab:', error);
-        }
-      }
-    });
-  });
+  // Уведомляем все вкладки с этим сайтом и его поддоменами о разблокировке
+  notifyTabsAboutUnblocking(siteDomain);
   
-  console.log(`Site ${siteDomain} is now fully unblocked`);
+  console.log(`Site ${siteDomain} and all subdomains are now fully unblocked`);
   return updatedSites;
 }
 
@@ -94,7 +127,7 @@ async function disableSiteWithDelay(siteDomain) {
   
   await saveSites(updatedSites);
   
-  // Сразу отправляем начальное значение таймера во все вкладки
+  // Сразу отправляем начальное значение таймера во все вкладки (включая поддомены)
   updateCountdownInTabs(siteDomain, 60);
   
   // Устанавливаем таймер на 60 секунд с периодическим обновлением
@@ -139,23 +172,10 @@ async function enableSite(siteDomain) {
   
   await saveSites(updatedSites);
   
-  // Уведомляем все вкладки о блокировке
-  chrome.tabs.query({}, function(tabs) {
-    tabs.forEach(tab => {
-      if (tab.url && tab.url.includes(siteDomain)) {
-        try {
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'siteBlocked',
-            domain: siteDomain
-          });
-        } catch (error) {
-          console.log('Could not notify tab about blocking:', error);
-        }
-      }
-    });
-  });
+  // Уведомляем все вкладки о блокировке (включая поддомены)
+  notifyTabsAboutBlocking(siteDomain);
   
-  console.log(`Site ${siteDomain} is now blocked`);
+  console.log(`Site ${siteDomain} and all subdomains are now blocked`);
   return updatedSites;
 }
 
@@ -171,7 +191,7 @@ async function initializeTimers() {
       
       console.log(`Restoring timer for ${site.domain}, time left: ${timeLeftSeconds}s`);
       
-      // Сразу отправляем текущее значение таймера
+      // Сразу отправляем текущее значение таймера во все вкладки
       updateCountdownInTabs(site.domain, timeLeftSeconds);
       
       // Устанавливаем таймер с периодическим обновлением
@@ -280,10 +300,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.storage.sync.get(['sites'], function(result) {
       const sites = result.sites || [];
       const now = new Date();
-      const isBlocked = sites.some(site => 
-        site.domain === message.siteDomain && 
-        (site.enabled || (site.disabledUntil && new Date(site.disabledUntil) > now))
-      );
+      const isBlocked = sites.some(site => {
+        const siteDomain = message.siteDomain;
+        // Проверяем точное совпадение или поддомен
+        return (siteDomain === site.domain || siteDomain.endsWith('.' + site.domain)) &&
+               (site.enabled || (site.disabledUntil && new Date(site.disabledUntil) > now));
+      });
       
       sendResponse({ blocked: isBlocked });
     });

@@ -4,8 +4,7 @@ function checkIfSiteBlocked() {
   
   chrome.runtime.sendMessage(
     {
-      action: 'getSiteStatus', 
-      siteDomain: currentHost
+      action: 'getBlockedSites'
     },
     function(response) {
       if (chrome.runtime.lastError) {
@@ -13,15 +12,68 @@ function checkIfSiteBlocked() {
         return;
       }
       
-      console.log('Site status:', currentHost, response);
+      console.log('Current host:', currentHost);
+      console.log('Blocked sites list:', response?.sites);
+      
+      if (response && response.sites) {
+        const isBlocked = isDomainBlocked(currentHost, response.sites);
+        console.log('Is site blocked?', isBlocked);
+        
+        if (isBlocked) {
+          // Получаем детальный статус для отображения правильного интерфейса
+          getSiteStatusAndShowBlockPage(currentHost);
+        }
+      }
+    }
+  );
+}
+
+// Функция для проверки блокировки домена (включая поддомены)
+function isDomainBlocked(host, blockedSites) {
+  const hostLower = host.toLowerCase();
+  
+  return blockedSites.some(blockedSite => {
+    const blockedSiteLower = blockedSite.toLowerCase().trim();
+    
+    // Проверяем точное совпадение
+    if (hostLower === blockedSiteLower) {
+      return true;
+    }
+    
+    // Проверяем поддомены (например: ru.yummyani.me для yummyani.me)
+    if (hostLower.endsWith('.' + blockedSiteLower)) {
+      return true;
+    }
+    
+    return false;
+  });
+}
+
+// Функция для получения статуса сайта и показа соответствующей страницы блокировки
+function getSiteStatusAndShowBlockPage(host) {
+  // Находим основной домен для проверки статуса
+  const mainDomain = findMainDomain(host);
+  
+  chrome.runtime.sendMessage(
+    {
+      action: 'getSiteStatus', 
+      siteDomain: mainDomain
+    },
+    function(response) {
+      if (chrome.runtime.lastError) {
+        console.log('Connection error:', chrome.runtime.lastError);
+        return;
+      }
+      
+      console.log('Site status for', mainDomain, ':', response);
       
       if (response && !response.error) {
         if (response.enabled) {
           // Сайт включен - показываем "заблокировано" без таймера
-          showBlockedPage(currentHost, 'blocked');
+          showBlockedPage(host, 'blocked');
         } else if (response.isInDelay && response.timeLeft > 0) {
           // Сайт в режиме задержки - показываем таймер
-          showBlockedPage(currentHost, 'delay', response.timeLeft);
+          showBlockedPage(host, 'delay', response.timeLeft);
         } else {
           // Сайт выключен - не показываем блокировку
           console.log('Site is not blocked');
@@ -29,6 +81,19 @@ function checkIfSiteBlocked() {
       }
     }
   );
+}
+
+// Функция для нахождения основного домена из поддомена
+function findMainDomain(host) {
+  const blockedSites = []; // Мы получим этот список из хранилища
+  
+  // Временно используем простую логику - берем домен второго уровня
+  const parts = host.split('.');
+  if (parts.length > 2) {
+    // Для поддоменов типа ru.yummyani.me возвращаем yummyani.me
+    return parts.slice(-2).join('.');
+  }
+  return host;
 }
 
 // Проверяем блокировку при загрузке страницы
@@ -179,7 +244,9 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
           if (timeLeft === 1) secondsText = 'секунда';
           else if (timeLeft > 1 && timeLeft < 5) secondsText = 'секунды';
           
-          countdownElement.textContent = timeLeft + ' ' + secondsText;
+          if (countdownElement) {
+            countdownElement.textContent = timeLeft + ' ' + secondsText;
+          }
           if (progressFill) {
             progressFill.style.width = (timeLeft / ${initialTimeLeft} * 100) + '%';
           }
@@ -197,10 +264,10 @@ function showBlockedPage(blockedHost, mode, initialTimeLeft = 60) {
           
           // Меняем цвет когда осталось мало времени
           if (timeLeft <= 10) {
-            countdownElement.style.color = '#ff4444';
+            if (countdownElement) countdownElement.style.color = '#ff4444';
             if (progressFill) progressFill.style.background = '#ff4444';
           } else if (timeLeft <= 30) {
-            countdownElement.style.color = '#ff9800';
+            if (countdownElement) countdownElement.style.color = '#ff9800';
             if (progressFill) progressFill.style.background = '#ff9800';
           }
         } else {
@@ -252,74 +319,93 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'siteUnblocked') {
     console.log('Site was unblocked:', message.domain);
     
-    const reloadBtn = document.getElementById('reloadPage');
-    const countdownElement = document.getElementById('countdown');
-    const countdownMessage = document.getElementById('countdownMessage');
+    const currentHost = window.location.hostname;
+    const mainDomain = findMainDomain(currentHost);
     
-    if (reloadBtn) {
-      // Останавливаем отсчет если он был
-      if (window.countdownInterval) {
-        clearInterval(window.countdownInterval);
-      }
+    // Проверяем, относится ли разблокировка к текущему сайту
+    if (mainDomain === message.domain) {
+      const reloadBtn = document.getElementById('reloadPage');
+      const countdownElement = document.getElementById('countdown');
+      const countdownMessage = document.getElementById('countdownMessage');
       
-      // Обновляем интерфейс
-      if (countdownElement) {
-        countdownElement.textContent = 'Сайт разблокирован!';
-        countdownElement.style.color = '#4CAF50';
+      if (reloadBtn) {
+        // Останавливаем отсчет если он был
+        if (window.countdownInterval) {
+          clearInterval(window.countdownInterval);
+        }
+        
+        // Обновляем интерфейс
+        if (countdownElement) {
+          countdownElement.textContent = 'Сайт разблокирован!';
+          countdownElement.style.color = '#4CAF50';
+        }
+        if (countdownMessage) {
+          countdownMessage.textContent = 'Нажмите "Обновить страницу" для доступа к сайту';
+        }
+        
+        const progressFill = document.getElementById('progressFill');
+        if (progressFill) {
+          progressFill.style.width = '0%';
+          progressFill.style.background = '#4CAF50';
+        }
+        
+        reloadBtn.style.display = 'block';
       }
-      if (countdownMessage) {
-        countdownMessage.textContent = 'Нажмите "Обновить страницу" для доступа к сайту';
-      }
-      
-      const progressFill = document.getElementById('progressFill');
-      if (progressFill) {
-        progressFill.style.width = '0%';
-        progressFill.style.background = '#4CAF50';
-      }
-      
-      reloadBtn.style.display = 'block';
     }
   }
   
   if (message.action === 'siteBlocked') {
     console.log('Site was blocked:', message.domain);
-    // При блокировке перезагружаем страницу для применения изменений
-    window.location.reload();
+    
+    const currentHost = window.location.hostname;
+    const mainDomain = findMainDomain(currentHost);
+    
+    // Проверяем, относится ли блокировка к текущему сайту
+    if (mainDomain === message.domain) {
+      // При блокировке перезагружаем страницу для применения изменений
+      window.location.reload();
+    }
   }
   
   if (message.action === 'updateCountdown') {
-    console.log('Updating countdown:', message.timeLeft);
+    console.log('Updating countdown:', message.timeLeft, 'for domain:', message.domain);
     
-    const countdownElement = document.getElementById('countdown');
-    const progressFill = document.getElementById('progressFill');
-    const countdownMessage = document.getElementById('countdownMessage');
+    const currentHost = window.location.hostname;
+    const mainDomain = findMainDomain(currentHost);
     
-    if (countdownElement && progressFill && countdownMessage) {
-      // Синхронизируем таймер с расширением
-      const timeLeft = message.timeLeft;
+    // Проверяем, относится ли обновление таймера к текущему сайту
+    if (mainDomain === message.domain) {
+      const countdownElement = document.getElementById('countdown');
+      const progressFill = document.getElementById('progressFill');
+      const countdownMessage = document.getElementById('countdownMessage');
       
-      let secondsText = 'секунд';
-      if (timeLeft === 1) secondsText = 'секунда';
-      else if (timeLeft > 1 && timeLeft < 5) secondsText = 'секунды';
-      
-      countdownElement.textContent = timeLeft + ' ' + secondsText;
-      progressFill.style.width = (timeLeft / 60 * 100) + '%';
-      
-      if (timeLeft > 30) {
-        countdownMessage.textContent = 'Сайт станет доступным через ' + timeLeft + ' ' + secondsText;
-      } else if (timeLeft > 10) {
-        countdownMessage.textContent = 'Скоро... осталось ' + timeLeft + ' ' + secondsText;
-      } else {
-        countdownMessage.textContent = 'Почти готово! ' + timeLeft + ' ' + secondsText;
-      }
-      
-      // Меняем цвет когда осталось мало времени
-      if (timeLeft <= 10) {
-        countdownElement.style.color = '#ff4444';
-        progressFill.style.background = '#ff4444';
-      } else if (timeLeft <= 30) {
-        countdownElement.style.color = '#ff9800';
-        progressFill.style.background = '#ff9800';
+      if (countdownElement && progressFill && countdownMessage) {
+        // Синхронизируем таймер с расширением
+        const timeLeft = message.timeLeft;
+        
+        let secondsText = 'секунд';
+        if (timeLeft === 1) secondsText = 'секунда';
+        else if (timeLeft > 1 && timeLeft < 5) secondsText = 'секунды';
+        
+        countdownElement.textContent = timeLeft + ' ' + secondsText;
+        progressFill.style.width = (timeLeft / 60 * 100) + '%';
+        
+        if (timeLeft > 30) {
+          countdownMessage.textContent = 'Сайт станет доступным через ' + timeLeft + ' ' + secondsText;
+        } else if (timeLeft > 10) {
+          countdownMessage.textContent = 'Скоро... осталось ' + timeLeft + ' ' + secondsText;
+        } else {
+          countdownMessage.textContent = 'Почти готово! ' + timeLeft + ' ' + secondsText;
+        }
+        
+        // Меняем цвет когда осталось мало времени
+        if (timeLeft <= 10) {
+          countdownElement.style.color = '#ff4444';
+          progressFill.style.background = '#ff4444';
+        } else if (timeLeft <= 30) {
+          countdownElement.style.color = '#ff9800';
+          progressFill.style.background = '#ff9800';
+        }
       }
     }
   }
