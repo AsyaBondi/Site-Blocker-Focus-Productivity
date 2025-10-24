@@ -1,78 +1,168 @@
-A powerful browser extension that helps you stay focused and productive by blocking distracting websites. Features intelligent delay-based blocking system for better self-control.
+🌟 Features
+Smart Blocking System
+🟢 Enabled: Immediate website blocking
 
-Key Features
-🚫 Smart Blocking System
-Enabled: Websites are immediately blocked
+🟡 Disabled with Delay: 60-second countdown before unblocking
 
-Disabled with Delay: Websites remain blocked for 60 seconds before becoming accessible
+🔴 Fully Disabled: Complete website accessibility
 
-Fully Disabled: Websites are completely accessible
+User Interface
+Clean Popup Interface with real-time controls
 
-⚡ Quick Controls
-Add/remove websites from block list
+Visual Status Indicators (color-coded badges)
 
-Toggle blocking with single click
+Live Countdown Timers for delayed unblocking
 
-Real-time status indicators
+Quick Add/Remove functionality
 
-Visual countdown for delayed unblocking
+Statistics Dashboard showing blocking status
 
-📊 Live Statistics
-Total sites in list
+Technical Features
+Network-level Blocking using Chrome's declarativeNetRequest API
 
-Currently blocked sites
+No Custom Pages - shows standard browser errors
 
-Sites in countdown phase
+Settings Synchronization across browser instances
 
-Available sites
+Local Storage - no data collection or tracking
 
-🎯 Productivity Benefits
-Combat procrastination
+🚀 Installation
+Manual Installation
+Download or clone this repository
 
-Reduce distractions
+Open Chrome and navigate to chrome://extensions/
 
-Build better browsing habits
+Enable "Developer mode" in the top-right corner
 
-Gradual control with delay system
+Click "Load unpacked" and select the extension folder
 
-How It Works
-Add websites to your block list (e.g., "youtube.com", "facebook.com")
+The extension icon will appear in your toolbar
 
-Toggle blocking:
+File Structure
+text
+site-blocker/
+├── manifest.json
+├── popup.html
+├── popup.js
+├── background.js
+├── styles.css
+└── icons/
+    ├── icon16.png
+    ├── icon48.png
+    └── icon128.png
+📖 How to Use
+Adding Websites
+Click the extension icon in the toolbar
 
-ON: Immediate blocking
+Enter a domain name (e.g., youtube.com, facebook.com)
 
-OFF: 60-second delay before unblocking
+Click "Add Site" or press Enter
 
-Monitor status through color-coded badges and live counters
+Managing Blocking
+Toggle Switch: Click to enable/disable blocking
 
-Technical Implementation
-AI-Assisted Development: Code created with DeepSeek AI
+Status Badges:
 
-Uses Chrome's declarativeNetRequest API for efficient blocking
+🟢 "on" - Website is blocked
 
-No custom blocking pages - shows standard browser error
+🟡 "60s" - Countdown to unblocking
 
-Works at network level for maximum reliability
+🔴 "off" - Website is accessible
 
-Syncs settings across browser instances
+Remove Button (×): Delete website from list
 
-Use Cases
-Students: Block social media during study sessions
+Blocking Behavior
+Enabled: Website loads with browser network error
 
-Professionals: Maintain focus during work hours
+Disabled: 60-second delay, then website becomes accessible
 
-Anyone: Build better digital habits with gradual control
+During Countdown: Toggle is disabled until countdown completes
 
-Privacy & Security
-No data collection
+🛠 Technical Details
+APIs Used
+declarativeNetRequest - Network-level blocking
 
-All settings stored locally
+storage - Settings persistence
 
-No tracking or analytics
+host_permissions - Website access
 
-Open for inspection
+Blocking Rules
+Blocks main frame and sub-resources
 
-Development Note: This extension was developed with AI assistance from DeepSeek, demonstrating the capabilities of modern AI in creating practical, functional browser extensions.
+Works on all URL schemes (HTTP/HTTPS)
 
-Perfect for: Anyone looking to improve focus, reduce distractions, and build healthier browsing habits with a smart, delay-based approach to website blocking.
+Includes subdomains automatically
+
+Data Storage
+All data stored locally in Chrome sync storage
+
+No external servers or data collection
+
+Complete privacy protection
+
+🔧 Development
+Code Structure
+Popup Interface: popup.html, popup.js, styles.css
+
+Background Service: background.js
+
+Manifest: manifest.json (Manifest V3)
+
+Key Functions
+sitesToRules() - Converts site list to blocking rules
+
+updateBlockRules() - Applies blocking rules
+
+disableSiteWithDelay() - Implements 60-second delay
+
+toggleSite() - Handles enable/disable toggles
+
+Building from Source
+Ensure all files are in the project directory
+
+Update version in manifest.json if needed
+
+Load as unpacked extension in Chrome
+
+🤝 Contributing
+This project was developed with AI assistance from DeepSeek. Contributions are welcome!
+
+Areas for Improvement
+Additional blocking modes
+
+Custom delay durations
+
+Scheduling features
+
+Export/import settings
+
+Enhanced statistics
+
+📝 License
+This project is open source and available under the MIT License.
+
+🐛 Troubleshooting
+Common Issues
+Extension not loading: Check Chrome version supports Manifest V3
+
+Websites not blocking: Verify domain format and refresh page
+
+Settings not saving: Check Chrome sync storage permissions
+
+Support
+For issues and feature requests, please check the project repository.
+
+📊 Statistics
+The extension provides real-time statistics:
+
+Total: Number of websites in list
+
+Blocked: Currently active blocking
+
+In Delay: Countdown in progress
+
+Available: Fully accessible websites
+
+Developed with AI assistance from DeepSeek 🤖
+
+Take control of your browsing habits and boost your productivity with intelligent website blocking!
