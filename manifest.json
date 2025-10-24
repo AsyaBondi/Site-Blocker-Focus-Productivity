@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Блокировщик сайтов",
+  "version": "1.0",
+  "description": "Блокирует загрузку указанных сайтов с возможностью включения/выключения",
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Блокировщик сайтов"
+  },
+  "icons": {
+    "48": "icons/icon48.png"
+  }
+}
